@@ -11,6 +11,7 @@ import Dashboard from './pages/dashboard';
 import NotFoundPage from './pages/404';
 
 import './App.css';
+import NewSalePage from './pages/newsale';
 
 const router = createBrowserRouter([
   {
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
       {
         path: 'usuarios',
         element: <UsersDashboard />,
+      },
+      {
+        path: 'ventas/nueva',
+        element: <NewSalePage />,
       },
       {
         path: '*',
