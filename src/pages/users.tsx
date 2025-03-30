@@ -52,28 +52,79 @@ export default function UsersDashboard() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+  
+    try {
+      if (modalType === "create") {
+        if (!formData.password) {
+          throw new Error("La contraseña es requerida");
+        }
+  
+        const newUser = {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          full_name: formData.full_name,
+        };
+  
+        await invoke("create_user", { user: newUser });
+        toast.success("Usuario creado correctamente");
+        setModalType(null); // Cierra el modal
+        await fetchUsers(); // Actualiza la tabla
+      } 
+      else if (modalType === "update" && selectedUser) {
+        const updatedUser = {
+          id: selectedUser.id,
+          username: formData.username,
+          email: formData.email,
+          role: formData.role,
+          full_name: formData.full_name,
+          is_active: selectedUser.is_active,
+          password_hash: selectedUser.password_hash || "",
+        };
+  
+        await invoke("update_user", { user: updatedUser });
+        toast.success("Usuario actualizado correctamente");
+        setModalType(null); // Cierra el modal
+        await fetchUsers(); // Actualiza la tabla
+      }
+    } catch (error) {
+      console.error("Error al procesar usuario:", error);
+      toast.error(error instanceof Error ? error.message : "Ocurrió un error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedUser) return;
+    
     setLoading(true);
     try {
-      console.log("Enviando solicitud de eliminación para user_id:", selectedUser.id);
-      const user_id = Number(selectedUser.id);
-      if (isNaN(user_id)) {
-        throw new Error("ID de usuario no válido");
+      console.log("Intentando eliminar usuario ID:", selectedUser.id);
+      
+      // Convertir explícitamente a número entero
+      const userId = parseInt(selectedUser.id.toString(), 10);
+      if (isNaN(userId)) {
+        throw new Error("ID de usuario inválido");
       }
-
-      const result = await invoke<boolean>("delete_user", { user_id });
-
-      if (!result) {
-        throw new Error("No se pudo eliminar el usuario");
+  
+      // Usar "userId" como parámetro (como en tu versión que funciona)
+      const rowsAffected = await invoke<number>("delete_user", { userId: userId });
+      
+      if (rowsAffected > 0) {
+        toast.success("Usuario eliminado correctamente");
+        setModalType(null);
+        await fetchUsers();
+      } else {
+        toast.error("No se pudo eliminar el usuario (no encontrado)");
       }
-
-      toast.success("Usuario eliminado correctamente");
-      setUsers(users.filter(user => user.id !== user_id));
-      setModalType(null);
     } catch (error) {
-      console.error("Error eliminando usuario:", error);
-      toast.error(error instanceof Error ? error.message : "Error al eliminar usuario");
+      console.error("Error al eliminar usuario:", error);
+      toast.error(`Error al eliminar: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -153,9 +204,64 @@ export default function UsersDashboard() {
       <Dialog open={!!modalType} onOpenChange={() => !loading && setModalType(null)}>
         <DialogContent>
           <DialogTitle>
-            {modalType === "delete" ? "Eliminar Usuario" : ""}
+            {modalType === "create" ? "Crear Usuario" : 
+             modalType === "update" ? "Editar Usuario" : "Eliminar Usuario"}
           </DialogTitle>
-          {modalType === "delete" && (
+          
+          {modalType !== "delete" ? (
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <Input 
+                  placeholder="Nombre de usuario" 
+                  value={formData.username || ""} 
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+                <Input 
+                  placeholder="Email" 
+                  type="email"
+                  value={formData.email || ""} 
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+                <Input 
+                  placeholder="Nombre completo" 
+                  value={formData.full_name || ""} 
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  required
+                />
+                {modalType === "create" && (
+                  <Input 
+                    placeholder="Contraseña" 
+                    type="password"
+                    value={formData.password || ""} 
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                  />
+                )}
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(value) => setFormData({ ...formData, role: value as UserRole })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UserRole.Admin}>Admin</SelectItem>
+                    <SelectItem value={UserRole.Seller}>Seller</SelectItem>
+                    <SelectItem value={UserRole.Manager}>Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  className="mt-4 w-full" 
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading ? "Procesando..." : "Guardar"}
+                </Button>
+              </div>
+            </form>
+          ) : (
             <>
               <DialogDescription>
                 ¿Estás seguro de que deseas eliminar al usuario {selectedUser?.username}?
