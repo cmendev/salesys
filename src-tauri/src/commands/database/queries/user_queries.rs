@@ -147,24 +147,24 @@ pub fn update_user(conn: &Connection, user: User) -> Result<()> {
 }
 
 pub fn delete_user(conn: &Connection, user_id: i32) -> Result<usize, rusqlite::Error> {
-    let mut stmt = conn.prepare("SELECT id FROM users WHERE id = ?")?;
-    let mut rows = stmt.query([user_id])?;
+    // Verificar primero si el usuario existe
+    let exists: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM users WHERE id = ?",
+        params![user_id],
+        |row| row.get(0),
+    )?;
 
-    if let None = rows.next()? {
-        println!("Usuario con ID {} no encontrado en la base de datos", user_id);
+    if exists == 0 {
         return Err(rusqlite::Error::QueryReturnedNoRows);
     }
 
+    // Eliminar el usuario
     let rows_affected = conn.execute(
         "DELETE FROM users WHERE id = ?", 
         params![user_id]
     )?;
     
-    println!("Filas afectadas: {}", rows_affected);
+    println!("Usuario eliminado. Filas afectadas: {}", rows_affected);
     
-    if rows_affected == 0 {
-        return Err(rusqlite::Error::QueryReturnedNoRows);
-    }
-
     Ok(rows_affected)
 }

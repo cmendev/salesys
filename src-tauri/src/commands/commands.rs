@@ -253,11 +253,25 @@ pub async fn cancel_invoice(
 #[tauri::command]
 pub async fn create_user(
     app_handle: AppHandle,
-    user: NewUser,
+    user: NewUser,  // Asegúrate que esto coincide con lo que envía el frontend
 ) -> Result<i32, String> {
-    let conn = establish_connection(&app_handle).map_err(|e| e.to_string())?;
-    user_queries::create_user(&conn, user)
-        .map_err(|e| e.to_string())
+    println!("Datos recibidos para crear usuario: {:?}", user);
+    
+    let conn = establish_connection(&app_handle).map_err(|e| {
+        eprintln!("Error de conexión: {}", e);
+        e.to_string()
+    })?;
+    
+    match user_queries::create_user(&conn, user) {
+        Ok(id) => {
+            println!("Usuario creado con ID: {}", id);
+            Ok(id)
+        },
+        Err(e) => {
+            eprintln!("Error al crear usuario: {}", e);
+            Err(e.to_string())
+        }
+    }
 }
 
 #[tauri::command]
@@ -318,19 +332,8 @@ pub async fn update_user(app_handle: tauri::AppHandle, user: User) -> Result<(),
 }
 
 #[tauri::command]
-pub async fn delete_user(app_handle: tauri::AppHandle, user_id: i32) -> Result<bool, String> {
+pub async fn delete_user(app_handle: tauri::AppHandle, user_id: i32) -> Result<usize, String> {
     let conn = establish_connection(&app_handle).map_err(|e| e.to_string())?;
-    
-    println!("Recibida solicitud para eliminar usuario ID: {}", user_id);
-    
-    match user_queries::delete_user(&conn, user_id) {
-        Ok(_) => {
-            println!("Usuario eliminado exitosamente");
-            Ok(true)
-        },
-        Err(e) => {
-            println!("Error al eliminar usuario: {}", e);
-            Err(e.to_string())
-        }
-    }
+    user_queries::delete_user(&conn, user_id)
+        .map_err(|e| e.to_string())
 }
