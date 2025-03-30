@@ -3,6 +3,7 @@ import LoginForm from "../components/LoginForm";
 import { SidebarMenu } from "../components/SidebarMenu";
 import { useAuthStore } from "../store/authStore";
 import { UserRole } from "../types/user";
+import { Toaster } from "@/components/ui/sonner";
 
 const AppLayout = () => {
     const user = useAuthStore((state) => state.user);
@@ -20,6 +21,7 @@ const AppLayout = () => {
             <div className="flex-1 overflow-auto">
                 <Outlet />
             </div>
+            <Toaster richColors position="bottom-right" closeButton={false} />
         </div>
     );
 };
