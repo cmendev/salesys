@@ -123,10 +123,14 @@ pub async fn delete_customer(
 pub async fn create_sale(
     app_handle: AppHandle,
     sale: NewSale,
-) -> Result<i32, String> {
+) -> Result<Sale, String> {
     let conn = establish_connection(&app_handle).map_err(|e| e.to_string())?;
-    sale_queries::create_sale(&conn, sale)
-        .map_err(|e| e.to_string())
+    let id = sale_queries::create_sale(&conn, sale).map_err(|e| e.to_string())?;
+    
+    // Esperar un breve momento para asegurar que la transacción se complete
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    
+    sale_queries::get_sale(&conn, id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
