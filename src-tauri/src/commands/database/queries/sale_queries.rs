@@ -42,9 +42,17 @@ pub fn get_sale(conn: &Connection, id: i32) -> Result<Sale> {
         FROM sales WHERE id = ?",
         [id],
         |row| {
+            let date_str: String = row.get(1)?;
+            let date = NaiveDateTime::parse_from_str(&date_str, "%Y-%m-%d %H:%M:%S")
+                .map_err(|e| rusqlite::Error::FromSqlConversionFailure(
+                    1, 
+                    rusqlite::types::Type::Text, 
+                    Box::new(e)
+                ))?;
+            
             Ok(Sale {
                 id: row.get(0)?,
-                date: row.get::<_, String>(1)?.parse::<NaiveDateTime>().unwrap(),  // Conversión automática gracias a la feature chrono
+                date,
                 customer_id: row.get(2)?,
                 subtotal: row.get(3)?,
                 taxes: row.get(4)?,
@@ -63,16 +71,31 @@ pub fn get_sales_by_date_range(
 ) -> Result<Vec<Sale>> {
     let mut stmt = conn.prepare(
         "SELECT id, date, customer_id, subtotal, taxes, total, payment_method, status 
-        FROM sales WHERE date BETWEEN ? AND ?"
+        FROM sales 
+        WHERE date BETWEEN ? AND ?
+        ORDER BY date DESC"
     )?;
     
+    // Formateamos las fechas para SQLite
+    let start_str = start.format("%Y-%m-%d %H:%M:%S").to_string();
+    let end_str = end.format("%Y-%m-%d %H:%M:%S").to_string();
+    
     let sales = stmt.query_map(
-        params![start.format("%Y-%m-%d %H:%M:%S").to_string(), end.format("%Y-%m-%d %H:%M:%S").to_string()],
-  // Conversión automática aquí también
+        params![start_str, end_str],
         |row| {
+            let date_str: String = row.get(1)?;
+            
+            // Parseamos la fecha con manejo de errores
+            let date = NaiveDateTime::parse_from_str(&date_str, "%Y-%m-%d %H:%M:%S")
+                .map_err(|e| rusqlite::Error::FromSqlConversionFailure(
+                    1, 
+                    rusqlite::types::Type::Text, 
+                    Box::new(e)
+                ))?;
+            
             Ok(Sale {
                 id: row.get(0)?,
-                date: row.get::<_, String>(1)?.parse::<NaiveDateTime>().unwrap(),
+                date,
                 customer_id: row.get(2)?,
                 subtotal: row.get(3)?,
                 taxes: row.get(4)?,
