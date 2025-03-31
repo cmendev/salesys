@@ -18,9 +18,8 @@ export function SidebarMenu({ userRole }: SidebarMenuProps) {
     const logout = useAuthStore((state) => state.logout);
 
     const menuItems: MenuItem[] = [
-        { path: '/panel', name: 'Panel', icon: '📈', roles: [UserRole.Admin, UserRole.Seller, UserRole.Manager] },
+        { path: '/', name: 'Panel', icon: '📈', roles: [UserRole.Admin, UserRole.Seller, UserRole.Manager] },
         { path: '/productos', name: 'Productos', icon: '📦', roles: [UserRole.Admin, UserRole.Seller, UserRole.Manager] },
-        { path: '/productos/agregar', name: 'Agregar Producto', icon: '➕', roles: [UserRole.Admin, UserRole.Manager] },
         { path: '/productos/categorias', name: 'Categorías', icon: '🏷️', roles: [UserRole.Admin] },
         { path: '/clientes', name: 'Clientes', icon: '👥', roles: [UserRole.Admin, UserRole.Seller, UserRole.Manager] },
         { path: '/ventas', name: 'Ventas', icon: '💰', roles: [UserRole.Admin, UserRole.Seller, UserRole.Manager] },
@@ -33,7 +32,7 @@ export function SidebarMenu({ userRole }: SidebarMenuProps) {
         item.roles.some(role => role === userRole)
     );
     const groupedItems: Record<string, MenuItem[]> = filteredItems.reduce((acc, item) => {
-        const category = item.path.split('/')[1];
+        const category = item.path.split('/')[1] ? item.path.split('/')[1] : item.name;
         acc[category] = acc[category] || [];
         acc[category].push(item);
         return acc;
