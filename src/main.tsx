@@ -19,7 +19,7 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       {
-        index: true, path: 'panel',
+        index: true,
         element: <Dashboard />,
       },
       {
